@@ -1,0 +1,200 @@
+# OpenIndiana pkg(5) completion                             -*- shell-script -*-
+# ------------------------------------------------------------------------------
+# Aurelien Larcher <aurelien@openindiana.org>
+
+# Bash-completion does not handle custom wordbreaks so comma-separated values
+# cannot be implemented without this.
+COMP_WORDBREAKS="${COMP_WORDBREAKS//,},"
+
+_pkg5()
+{
+  local cur prev words cword
+  _init_completion || return
+
+  local cmds="list search info contents update install uninstall exact-install history
+              verify fix
+              publisher set-publisher unset-publisher
+              mediator set-mediator unset-mediator facet change-facet variant change-variant
+              avoid unavoid freeze unfreeze
+              refresh rebuild-index purge-history
+              property set-property add-property-value unset-property remove-property-value
+              image-create dehydrate rehydrate help"
+  local cmd_opts=""
+
+  # Lookup for command
+  local special i
+  for (( i=1; i < $cword; i++ ))
+  do
+    if [[ ${words[i]} == @(list|search|info|contents|update|@(|un|exact-)install|history|verify|fix|@(|set-|unset-)publisheri|@(|set-|unset-)mediator|@(|change-)facet|@(|change-)variant|@(|un)avoid|@(|un)freeze|refresh|rebuild-index|purge-history|@(|set-|unset-)property|@(add-|remove-)property-value|image-create|@(de|re)hydrate|help) ]]
+    then
+      special=${words[i]}
+      break
+    fi
+  done
+
+  if [[ -z "${special}" ]]
+  then
+    # Global options
+    local pkg_opts="-? --help -R"
+    if [[ "${prev}" == "-R" ]]
+    then
+      # List BE mountpoints
+      COMPREPLY=( $(compgen -W "$(beadm list -H | cut -f 4 -d ';')" -- "${cur}") )
+      return
+    fi
+  else
+    # Command options
+    local cmd_opts_be="--no-be-activate
+                       --no-backup-be --require-backup-be --backup-be-name
+                       --deny-new-be --require-new-be --be-name"
+    case "${special}" in
+      change-facet|change-variant|exact-install|install)
+        cmd_opts="-n -v -q -C -g
+                  --accept --licenses --no-index --no-refresh
+                  ${cmp_opts_be} -r
+                  --sync-actuators --sync-actuators-timeout --reject"
+        if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
+        ;;
+      contents)
+        cmd_opts="-H -m -r -a -g -o -s -t"
+        ;;
+      dehydrate|rehydrate)
+        cmd_opts="-n -v -q -p"
+        ;;
+      facet)
+        cmd_opts="-H -a -i -m -F"
+        ;;
+      fix)
+        cmd_opts="-H -n -v -q ${cmp_opts_be} --accept --licenses"
+        ;;
+      freeze)
+        cmd_opts="-n -c"
+        ;;
+      history)
+        cmd_opts="-H -N -l -t -n -o"
+        ;;
+      image-create)
+        cmd_opts="-F -P -U -f -z --force --full --partial --user --zone
+                  -k -c --no-refresh --variant
+                  -g --origin= -m  --mirror= --facet -p --publisher"
+        ;;
+      info)
+        cmd_opts="-l -q -r -g --license"
+        ;;
+      list)
+        cmd_opts="-H -a -f -n -q -s -u -v -g --no-refresh"
+        ;;
+      facet)
+        cmd_opts="-a -H -F"
+        ;;
+      property)
+        cmd_opts="-H"
+        ;;
+      publisher)
+        cmd_opts="-H -P -n -F"
+        ;;
+      refresh)
+        cmd_opts="-q --full"
+        ;;
+      search)
+        cmd_opts="-H -I -a -f -l -p -r -o -s"
+        #XXX: complete the list of attributes
+        local pkg_attributes="pkg.fmri pkg.name pkg.human-version info.classification pkg.description
+                              pkg.summary pkg.renamed pkg.obsolete" 
+        #XXX: queries are not implemented
+        case ${cur} in
+          '"')
+            local realcur="${cur##\"}"
+            local pkg_query="depend"
+            compopt -o nospace
+            COMPREPLY=( $(compgen -W "${pkg_query}" -S ":" -- "${realcur}") )
+            return
+            ;;
+          *depend:)
+            local realcur="${cur##:}"
+            local pkg_depend_type="conditional exclude group incorporate optional origin parent
+                                   require require-any"
+            COMPREPLY=( $(compgen -W "${pkg_depend_type}" -S ":" -- "${realcur}") )
+            return
+            ;;
+          *)
+            local pkg_attributes_search="search.match search.match_type" 
+            case "${prev}" in
+              -o|,)
+                compopt -o nospace
+                COMPREPLY=( $(compgen -W "${pkg_attributes} ${pk_attributes_search}" -- "${cur}") )
+                return
+                ;;
+              *)
+                case "${cur}" in
+                  ,*)
+                    # PKG attribute after comma
+                    local realcur=${cur##,}
+                    compopt -o nospace
+                    COMPREPLY=( $(compgen -W "${pkg_attributes} ${pk_attributes_search}" -- "${realcur}") )
+                    return
+                esac
+                ;;
+            esac
+            ;;
+        esac
+        ;;
+      set-mediator|unset-mediator)
+        cmd_opts="-n -v -I -V ${cmd_opts_be}"
+        ;;
+      set-publisher)
+        cmd_opts="-P -e -d -k -c
+                  -g --add-origin= -G --remove-origin=
+                  -m --add-mirror= -M --remove-mirror=
+                  -p --enable --disable --no-refresh --reset-uuid
+                  --non-sticky --sticky
+                  --search-after= --search-before= --search-first
+                  --approve-ca-cert= --revoke-ca-cert= --unset-ca-cert=
+                  --set-property --unset-property
+                  --add-property-value --remove-property-value 
+                  --proxy "
+        ;;
+      unfreeze)
+        cmd_opts="-n"
+        ;;
+      uninstall)
+        cmd_opts="-n -v -q -C -g --ignore-missing
+                  --accept --licenses --no-index
+                  ${cmp_opts_be} -r
+                  --sync-actuators --sync-actuators-timeout"
+        if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
+        ;;
+      update)
+        cmd_opts="-n -v -q -C -g --accept --ignore-missing
+                  --licenses --no-index --no-refresh 
+                  ${cmp_opts_be} -r
+                  --sync-actuators --sync-actuators-timeout --reject"
+        if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
+        ;;
+      variant)
+        cmd_opts="-H -a -i -v -F"
+        ;;
+      verify)
+        cmd_opts="-H -q -v"
+        ;;
+      *)
+        ;;
+    esac
+  fi
+
+  if [[ -z "${special}" ]]
+  then
+    if [[ "${cur}" == -* ]]
+    then
+      COMPREPLY=( $(compgen -W "${pkg_opts}" -- "${cur}") )
+    else
+      COMPREPLY=( $(compgen -W "${cmds}" -- "${cur}") )
+    fi
+  else
+    COMPREPLY=( $(compgen -W "${cmd_opts}" -- "${cur}") )
+  fi
+} &&
+  complete -F _pkg5 +o default pkg
+
+# ex: filetype=sh
+# vim: tabstop=2 shiftwidth=2 expandtab smartindent
