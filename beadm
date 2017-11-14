@@ -1,0 +1,225 @@
+# OpenIndiana beadm(1M) completion                          -*- shell-script -*-
+# ------------------------------------------------------------------------------
+# Aurelien Larcher <aurelien@openindiana.org>
+
+# Bash-completion does not handle custom wordbreaks so comma-separated values
+# cannot be implemented without this.
+COMP_WORDBREAKS="${COMP_WORDBREAKS//,},"
+
+_beadm()
+{
+  local cur prev words cword
+  _init_completion -n : || return
+
+  local cmds="activate create destroy list mount unmount umount rename rollback"
+  local cmd_opts=""
+
+  # Lookup for command
+  local special i
+  for (( i=1; i < $cword; i++ ))
+  do
+    if [[ ${words[i]} == @(activate|create|destroy|list|@(|u|un)mount|rename|rollback) ]]
+    then
+      special=${words[i]}
+      break
+    fi
+  done
+
+  if [[ -z "${special}" ]]
+  then
+    COMPREPLY=( $(compgen -W "${cmds}" -- "${cur}") )
+    return
+  else
+    # Command options
+    if [[ "${cur}" == -* ]]
+    then
+      case "${special}" in
+        activate|rename|rollback)
+          # beadm activate [-v] beName
+          # beadm rename [-v] origBeName newBeName
+          # beadm rollback [-v] beName snapshot
+          # beadm rollback [-v] beName@snapshot
+          # Prevent recurring autocompletion
+          if [[ "${prev}" != "-v" ]]; then cmd_opts="-v"; fi
+          ;;
+        create)
+          # beadm create [-a] [-d BE_desc]
+          #   [-o property=value] ... [-p zpool]
+          #   [-e nonActiveBe | beName@snapshot] [-v] beName
+          # beadm create [-d BE_desc]
+          #   [-o property=value] ... [-p zpool] [-v] beName@snapshot
+          cmd_opts="-a -d -o -p -e"
+          ;;
+        destroy)
+          # beadm destroy [-Ffsv] beName
+          # beadm destroy [-Fv] beName@snapshot
+          cmd_opts="-F -f -s -v"
+          ;;
+        list)
+          # beadm list [[-a] | [-d] [-s]] [-H]
+          #   [-k|-K date | name | space] [-v] [beName]
+          cmd_opts="-a -d -s -H -k -K -v"
+          ;;
+        mount)
+          # beadm mount [-s ro|rw] [-v] beName [mountpoint]
+          cmd_opts="-s -v"
+          ;;
+        unmount|umount)
+          # beadm unmount [-fv] beName | mountpoint
+          # beadm umount [-fv] beName | mountpoint
+          cmd_opts="-f -v"
+          ;;
+        *)
+          ;;
+      esac
+      COMPREPLY=( $(compgen -W "${cmd_opts}" -- "${cur}") )
+      return
+    else
+      case "${special}" in
+        activate|destroy|*mount|rename|rollback)
+          # beadm activate [-v] beName
+          # beadm destroy [-Ffsv] beName
+          # beadm destroy [-Fv] beName@snapshot
+          # beadm rename [-v] origBeName newBeName
+          # beadm rollback [-v] beName snapshot
+          # beadm rollback [-v] beName@snapshot
+          case "${prev}" in
+            -s)
+              # Only for mount
+              if [[ "${special}" == "mount" ]]
+              then
+                COMPREPLY=( $(compgen -W "ro rw" -- "${cur}") )
+                return
+              fi
+              ;;
+            *)
+              case "${cur}" in
+                *@)
+                  compopt -o nospace
+                  COMPREPLY=( $(compgen -W "$(beadm list -H -s | gawk -F ';' '{print $2}')" -- "${cur}") )
+                  return
+                  ;;
+                *)
+                  local be_filter=""
+                  local be_and_snapshots=()
+                  case "${special}" in
+                    activate)
+                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N"  {print $1}'))
+                      ;;
+                    destroy)
+                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N"  {print $1}'))
+                      be_and_snapshots+=($(beadm list -H -s | gawk -F ';' '{print $1"@"}' | uniq))
+                      ;;
+                    mount)
+                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N" && $4 == "" {print $1}'))
+                      ;;
+                    umount|unmount)
+                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N" && $4 != "" {print $1}'))
+                      ;;
+                    rename)
+                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "R"  {print $1}'))
+                      ;;
+                    rollback)
+                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N"  {print $1}'))
+                      be_and_snapshots+=($(beadm list -H -s | gawk -F ';' '{print $1"@"}' | uniq))
+                      ;;
+                  esac
+                  compopt -o nospace
+                  COMPREPLY=( $(compgen -W "${be_and_snapshots[*]}" -- "${cur}") )
+                  return
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
+        create)
+          # beadm create [-a] [-d BE_desc]
+          #   [-o property=value] ... [-p zpool]
+          #   [-e nonActiveBe | beName@snapshot] [-v] beName
+          # beadm create [-d BE_desc]
+          #   [-o property=value] ... [-p zpool] [-v] beName@snapshot
+          case "${prev}" in
+            -p)
+              COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+              return
+              ;;
+            -e)
+              case "${cur}" in
+                *@)
+                  compopt -o nospace
+                  COMPREPLY=( $(compgen -W "$(beadm list -H -s | gawk -F ';' '{print $2}')" -- "${cur}") )
+                  return
+                  ;;
+                *)
+                  local be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N" {print $1}'))
+                  be_and_snapshots+=($(beadm list -H -s | gawk -F ';' '{print $1"@"}' | uniq))
+                  compopt -o nospace
+                  COMPREPLY=( $(compgen -W "${be_and_snapshots[*]}" -- "${cur}") )
+                  return
+                  ;;
+              esac
+              ;;
+            -o|,)
+              # ZFS property
+              compopt -o nospace
+              COMPREPLY=( $(compgen -W "$(zfs get 2>&1 | gawk '$2 == "YES" {print $1}')" -S '=' -- "${cur}") )
+              return
+              ;;
+            =)
+              # ZFS property value
+              local pprev="${COMP_WORDS[COMP_CWORD-2]}"
+              local realcur="${cur##*=}"
+              local zfsprop="${pprev%%@*}"; zfsprop="${zfsprop##*,}"
+              local zfsvals=($(zfs get 2>&1 | gawk "\$1 == \"${zfsprop}\" && \$2 == \"YES\" { \$1=\"\"; \$2=\"\"; \$3=\"\"; print }" | gsed -e 's,|,,g'))
+              compopt -o nospace
+              compopt -o nosort
+              COMPREPLY=( $(compgen -W "${zfsvals[*]}" -- "${realcur}") )
+              ;;
+            *)
+              case "${cur}" in
+                ,*)
+                  # ZFS property after comma
+                  local realcur=${cur##*,}
+                  compopt -o nospace
+                  COMPREPLY=( $(compgen -W "$(zfs get 2>&1 | gawk '$2 == "YES" {print $1}')" -S '=' -- "${realcur}") )
+                  return
+                  ;;
+                =)
+                  # ZFS property values
+                  local realcur=${cur##*=}
+                  local zfsprop=${prev%%@*}; zfsprop=${zfsprop##*,}
+                  local zfsvals=($(zfs get 2>&1 | gawk "\$1 == \"${zfsprop}\" && \$2 == \"YES\" { \$1=\"\"; \$2=\"\"; \$3=\"\"; print }" | gsed -e 's,|,,g'))
+                  compopt -o nospace
+                  compopt -o nosort
+                  COMPREPLY=( $(compgen -W "${zfsvals[*]}" -- "${realcur}") )
+                  return
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
+        list)
+          # beadm list [[-a] | [-d] [-s]] [-H]
+          #   [-k|-K date | name | space] [-v] [beName]
+          case "${prev}" in
+            -k|-K)
+              COMPREPLY=( $(compgen -W "date name space" -- "${cur}") )
+              return
+              ;;
+            *)
+              local be_list=($(beadm list -H | gawk -F ';' '{print $1}'))
+              compopt -o nospace
+              COMPREPLY=( $(compgen -W "${be_list[*]}" -- "${cur}") )
+              ;;
+          esac
+          ;;
+        *)
+          ;;
+      esac
+    fi
+  fi
+} &&
+  complete -F _beadm +o default beadm
+
+# ex: filetype=sh
+# vim: tabstop=2 shiftwidth=2 expandtab smartindent
