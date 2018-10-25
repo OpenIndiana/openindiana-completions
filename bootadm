@@ -1,0 +1,54 @@
+_bootadm () {
+    local cur prev opts line
+    COMPREPLY=()
+
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    line="${COMP_LINE}"
+
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "update-archive list-archive set-menu list-menu" -- $cur) )
+        return
+    fi
+
+    case "$prev" in
+    -R)
+        _cd
+        return;;
+    -p)
+        COMPREPLY=( $(compgen -W "i86pc sun4v sun4u" -- $cur) )
+        return;;
+    list-menu)
+        COMPREPLY=( $(compgen -W "-R" -- $cur) )
+        return;;
+    esac
+
+    case "$line" in
+    *update-archive*-R*)
+        COMPREPLY=( $(compgen -W "-v -n -f -F -p" -- $cur) )
+        ;;
+    *update-archive*)
+        COMPREPLY=( $(compgen -W "-v -n -f -F -R" -- $cur) )
+        ;;
+    *list-archive*-R*)
+        COMPREPLY=( $(compgen -W "-p" -- $cur) )
+        ;;
+    *list-archive*)
+        COMPREPLY=( $(compgen -W "-R" -- $cur) )
+        ;;
+    *set-menu*-R*)
+        COMPREPLY=( $(compgen -W "default= timeout=" -- $cur) )
+        compopt -o nospace
+        ;;
+    *set-menu*)
+        COMPREPLY=( $(compgen -W "-R default= timeout=" -- $cur) )
+        if [[ ${#COMPREPLY[@]} == 1 && ${COMPREPLY[0]} != -R ]]; then
+            compopt -o nospace
+        fi
+        ;;
+    esac
+
+}
+
+complete -F _bootadm bootadm
+
