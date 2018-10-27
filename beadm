@@ -49,7 +49,7 @@ _beadm()
           #   [-e nonActiveBe | beName@snapshot] [-v] beName
           # beadm create [-d BE_desc]
           #   [-o property=value] ... [-p zpool] [-v] beName@snapshot
-          cmd_opts="-a -d -o -p -e"
+          cmd_opts="-a -d -o -p -e -v"
           ;;
         destroy)
           # beadm destroy [-Ffsv] beName
