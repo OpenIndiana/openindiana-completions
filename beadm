@@ -9,7 +9,8 @@ COMP_WORDBREAKS="${COMP_WORDBREAKS//,},"
 
 _beadm()
 {
-  local cur prev words cword
+  local cur prev words cword line
+  line="${COMP_LINE}"
   _init_completion -n : || return
 
   local cmds="activate create destroy list mount unmount umount rename rollback"
@@ -120,9 +121,21 @@ _beadm()
                       be_and_snapshots=( $(beadm list -H | gawk -F ';' '$3 !~ "R"  {print $1}') )
                       ;;
                     rollback)
-                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N"  {print $1}'))
-                      be_and_snapshots+=($(beadm list -H -s | gawk -F ';' '{print $1"@"}' | uniq))
-                      ;;
+                      # list BEs and snapshots
+                      be_and_snapshots=( $(beadm list -H -a | gawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
+                      case "${line}" in
+                        *@*)
+                          # entered BE@snapshot, hence we are done here
+                          return
+                          ;;
+                        *)
+                          # entered BE name, so find snapshot for the particuler BE
+                          if [[ "${prev}" != "rollback" ]]
+                          then
+                            be_and_snapshots=( $(for K in echo "${!be_and_snapshots[@]}"; do echo ${be_and_snapshots[$K]} | grep "^${prev}@" | gsed -e 's,.*@,,'; done) )
+                          fi
+                          ;;
+                      esac
                   esac
                   compopt -o nospace
                   COMPREPLY=( $(compgen -W "${be_and_snapshots[*]}" -- "${cur}") )
