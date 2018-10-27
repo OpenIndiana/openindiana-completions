@@ -1,6 +1,7 @@
 # OpenIndiana beadm(1M) completion                          -*- shell-script -*-
 # ------------------------------------------------------------------------------
-# Aurelien Larcher <aurelien@openindiana.org>
+# Copyright (c) 2017, Aurelien Larcher <aurelien@openindiana.org>
+# Copyright (c) 2018, Michal Nowak <mnowak@startmail.com>
 
 # Bash-completion does not handle custom wordbreaks so comma-separated values
 # cannot be implemented without this.
@@ -107,8 +108,7 @@ _beadm()
                       be_and_snapshots=( $(beadm list -H | gawk -F ';' '$3 !~ "N"  {print $1}') )
                       ;;
                     destroy)
-                      be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N"  {print $1}'))
-                      be_and_snapshots+=($(beadm list -H -s | gawk -F ';' '{print $1"@"}' | uniq))
+                      be_and_snapshots=( $(beadm list -H -a | gawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
                       ;;
                     mount)
                       be_and_snapshots=( $(beadm list -H | gawk -F ';' '$3 !~ "N" && $4 == "" {print $1}') )
@@ -151,8 +151,7 @@ _beadm()
                   return
                   ;;
                 *)
-                  local be_and_snapshots=($(beadm list -H | gawk -F ';' '$3 !~ "N" {print $1}'))
-                  be_and_snapshots+=($(beadm list -H -s | gawk -F ';' '{print $1"@"}' | uniq))
+                  be_and_snapshots=( $(beadm list -H -a | gawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
                   compopt -o nospace
                   COMPREPLY=( $(compgen -W "${be_and_snapshots[*]}" -- "${cur}") )
                   return
