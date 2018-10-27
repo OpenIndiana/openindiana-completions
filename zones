@@ -1,3 +1,7 @@
+# OpenIndiana zones(5) completion                           -*- shell-script -*-
+# ------------------------------------------------------------------------------
+# Jonathan Perkin <jperkin@joyent.com>
+
 _zlogin()
 {
     local cur prev opts base
@@ -10,7 +14,7 @@ _zlogin()
         local running=$(zoneadm list | grep -v '^global$')
         COMPREPLY=( $(compgen -W "${running}" -- ${cur}) )
     fi
-    return 0
+    return
 }
 
 _dash_z_zone()
@@ -25,7 +29,7 @@ _dash_z_zone()
         local zones=$(zoneadm list -c | grep -v '^global$')
         COMPREPLY=( $(compgen -W "${zones}" -- ${cur}) )
     fi
-    return 0
+    return
 }
 
 complete -F _zlogin zlogin
@@ -39,3 +43,6 @@ complete -F _dash_z_zone pkill
 complete -F _dash_z_zone ps
 complete -F _dash_z_zone ptree
 complete -F _dash_z_zone wall
+
+# ex: filetype=sh
+# vim: tabstop=2 shiftwidth=2 expandtab smartindent
