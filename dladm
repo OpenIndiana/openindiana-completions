@@ -1,36 +1,35 @@
+# OpenIndiana dladm(1M) completion                          -*- shell-script -*-
+# ------------------------------------------------------------------------------
 # Copyright (c) 2012, Rob Gulewich <robert.gulewich@joyent.com>
+# Copyright (c) 2018, Michal Nowak <mnowak@startmail.com>
 
 _dladm()
 {
-    local cur prev opts base
-    COMPREPLY=()
+    local cur prev
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     if [[ ${prev} == 'dladm' ]]; then
-        local cmds="rename-link show-link create-aggr delete-aggr add-aggr \
-            remove-aggr modify-aggr show-aggr scan-wifi connect-wifi \
-            disconnect-wifi show-wifi set-linkprop reset-linkprop \
-            show-linkprop show-ether create-secobj delete-secobj show-secobj \
-            create-vlan delete-vlan show-vlan create-iptun delete-iptun \
-            modify-iptun show-iptun delete-phys show-phys create-vnic \
-            delete-vnic show-vnic create-part delete-part show-part show-ib \
-            create-etherstub delete-etherstub show-etherstub create-bridge \
-            modify-bridge delete-bridge add-bridge remove-bridge show-bridge \
-            show-bridge show-usage"
-
-        COMPREPLY=( $(compgen -W "$cmds" -- ${cur}) )
-    # The -z takes a zone option, ignore everything else
-    elif [[ ${prev} =~ -.*z$ ]]; then
-        local zones=$(zoneadm list -c | grep -v '^global$')
-        COMPREPLY=( $(compgen -W "${zones}" -- ${cur}) )
+      local cmds="$(dladm 2>&1 | awk '/^ / { print $1 }')"
+      COMPREPLY=( $(compgen -W "${cmds}" -- ${cur}) )
+    elif [[ ${prev} =~ "-z" ]]; then
+      # Some illumos OS distributions have zone-aware dladm. Treat -z as a zone name option
+      local zones="$(zoneadm list -c | grep -v '^global$')"
+      COMPREPLY=( $(compgen -W "${zones}" -- ${cur}) )
     elif [[ ${prev} =~ 'delete-vnic' ]]; then
-        local vnics=$(dladm show-vnic -p -o link)
-        COMPREPLY=( $(compgen -W "${vnics}" -- ${cur}) )
+      # Redirect stderr to /dev/null not to polute console, e.g.:
+      #   dladm: could not open /dev/dld: object not found
+      local vnics="$(dladm show-vnic -p -o link 2> /dev/null)"
+      COMPREPLY=( $(compgen -W "${vnics}" -- ${cur}) )
     elif [[ ${prev} =~ 'delete-etherstub' ]]; then
-        local stubs=$(dladm show-etherstub -p)
-        COMPREPLY=( $(compgen -W "${stubs}" -- ${cur}) )
+      # Redirect stderr to /dev/null not to polute console, e.g.:
+      #   dladm: could not open /dev/dld: object not found
+      local stubs="$(dladm show-etherstub -p 2> /dev/null)"
+      COMPREPLY=( $(compgen -W "${stubs}" -- ${cur}) )
     fi
 }
 
 complete -F _dladm dladm
+
+# ex: filetype=sh
+# vim: tabstop=2 shiftwidth=2 expandtab smartindent
