@@ -36,31 +36,40 @@ _zlogin()
     fi
 }
 
+# Many illumos utilities are zone-aware through the -z option
 _dash_z_zone()
 {
-    local cur prev opts base
-    COMPREPLY=()
+    local cur prev
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    # The -z takes a zone option, ignore everything else
-    if [[ ${prev} =~ -.*z$ ]]; then
-        local zones=$(zoneadm list -c | grep -v '^global$')
-        COMPREPLY=( $(compgen -W "${zones}" -- ${cur}) )
+    if [[ ${prev} =~ "-z" ]]; then
+      # Provide running zone names
+      local zones="$(zoneadm list -c | grep -v '^global$')"
+      COMPREPLY=( $(compgen -W "${zones}" -- ${cur}) )
     fi
 }
 
 complete -F _zlogin zlogin
-complete -F _dash_z_zone zoneadm
-complete -F _dash_z_zone zonecfg
-complete -F _dash_z_zone svcs
-complete -F _dash_z_zone svcadm
-complete -F _dash_z_zone svcprop
+complete -F _dash_z_zone allocate
+complete -F _dash_z_zone auditreduce
+complete -F _dash_z_zone deallocate
+complete -F _dash_z_zone ipfs
+complete -F _dash_z_zone ipfstat
+complete -F _dash_z_zone ipmon
+complete -F _dash_z_zone ipnat
+complete -F _dash_z_zone ippool
 complete -F _dash_z_zone pgrep
 complete -F _dash_z_zone pkill
 complete -F _dash_z_zone ps
+complete -F _dash_z_zone psrset
 complete -F _dash_z_zone ptree
+complete -F _dash_z_zone svcadm
+complete -F _dash_z_zone svcprop
+complete -F _dash_z_zone svcs
 complete -F _dash_z_zone wall
+complete -F _dash_z_zone zoneadm
+complete -F _dash_z_zone zonecfg
 
 # ex: filetype=sh
 # vim: tabstop=2 shiftwidth=2 expandtab smartindent
