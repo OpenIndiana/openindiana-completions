@@ -64,9 +64,7 @@ complete -F _dash_z_zone pkill
 complete -F _dash_z_zone ps
 complete -F _dash_z_zone psrset
 complete -F _dash_z_zone ptree
-complete -F _dash_z_zone svcadm
 complete -F _dash_z_zone svcprop
-complete -F _dash_z_zone svcs
 complete -F _dash_z_zone wall
 complete -F _dash_z_zone zoneadm
 complete -F _dash_z_zone zonecfg
