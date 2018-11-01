@@ -26,11 +26,13 @@ _get_alternative_output_format()
 
 _pkg5()
 {
-  local cur prev words cword
+  local cur prev words cword line
+  line="${COMP_LINE}"
   _init_completion || return
 
-  local cmds="list search info contents update install uninstall exact-install history apply-hot-fix
-              verify fix
+  local cmds="list search info contents
+              update install uninstall history exact-install apply-hot-fix
+              verify fix revert
               publisher set-publisher unset-publisher
               mediator set-mediator unset-mediator facet change-facet variant change-variant
               avoid unavoid freeze unfreeze
@@ -43,7 +45,7 @@ _pkg5()
   local special i
   for (( i=1; i < $cword; i++ ))
   do
-    if [[ ${words[i]} == @(list|search|info|contents|update|update-format|version|@(|un|exact-)install|history|verify|fix|apply-hot-fix|@(|set-|unset-)publisher|@(|set-|unset-)mediator|@(|change-)facet|@(|change-)variant|@(|un)avoid|@(|un)freeze|refresh|rebuild-index|purge-history|@(|set-|unset-)property|@(add-|remove-)property-value|image-create|@(de|re)hydrate|help) ]]
+    if [[ ${words[i]} == @(list|search|info|contents|update|update-format|version|@(|un|exact-)install|history|verify|fix|revert|apply-hot-fix|@(|set-|unset-)publisher|@(|set-|unset-)mediator|@(|change-)facet|@(|change-)variant|@(|un)avoid|@(|un)freeze|refresh|rebuild-index|purge-history|@(|set-|unset-)property|@(add-|remove-)property-value|image-create|@(de|re)hydrate|help) ]]
     then
       special=${words[i]}
       break
@@ -69,7 +71,7 @@ _pkg5()
       change-facet|change-variant|exact-install|install)
         cmd_opts="-n -v -q -C -g
                   --accept --licenses --no-index --no-refresh
-                  ${cmp_opts_be} -r
+                  ${cmd_opts_be} -r
                   --sync-actuators --sync-actuators-timeout --reject"
         if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
         ;;
@@ -83,7 +85,7 @@ _pkg5()
         cmd_opts="-H -a -i -m -F"
         ;;
       fix)
-        cmd_opts="-H -n -v -q ${cmp_opts_be} --accept --licenses"
+        cmd_opts="-H -n -v -q ${cmd_opts_be} --accept --licenses"
         ;;
       freeze)
         cmd_opts="-n -c"
@@ -117,6 +119,9 @@ _pkg5()
         ;;
       refresh)
         cmd_opts="-q --full"
+        ;;
+      revert)
+        cmd_opts="-n -v ${cmd_opts_be} --tagged"
         ;;
       search)
         cmd_opts="-H -I -a -f -l -p -r -o -s"
@@ -182,14 +187,14 @@ _pkg5()
       uninstall)
         cmd_opts="-n -v -q -C -g --ignore-missing
                   --accept --licenses --no-index
-                  ${cmp_opts_be} -r
+                  ${cmd_opts_be} -r
                   --sync-actuators --sync-actuators-timeout"
         if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
         ;;
       update)
         cmd_opts="-n -v -q -C -g --accept --ignore-missing
                   --licenses --no-index --no-refresh 
-                  ${cmp_opts_be} -r
+                  ${cmd_opts_be} -r
                   --sync-actuators --sync-actuators-timeout --reject"
         if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
         ;;
@@ -239,6 +244,9 @@ _pkg5()
       ;;
     dehydrate|rehydrate)
       [[ ${prev} == "-p" ]] && _get_values publisher
+      ;;
+    revert)
+      [[ ! ${line} =~ "--tagged" ]] && _cd
       ;;
     esac
   fi
