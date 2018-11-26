@@ -1,6 +1,7 @@
 # OpenIndiana zpool(1M) completion                          -*- shell-script -*-
 # ------------------------------------------------------------------------------
 # Aurelien Larcher <aurelien@openindiana.org>
+# Michal Nowak <mnowak@startmail.com>
 
 # Bash-completion does not handle custom wordbreaks so comma-separated values
 # cannot be implemented without this.
@@ -11,14 +12,15 @@ _zpool()
   local cur prev words cword
   _init_completion -n : || return
 
-  local cmds="create destroy add remove labelclear list iostat status online offline clear reopen attach detach replace split import upgrade reguid history get set"
+  local cmds="create destroy add remove labelclear checkpoint list iostat status online offline clear reopen attach detach replace split initialize scrub import export upgrade reguid history get set"
   local cmd_opts=""
+  local zpool_properties="allocated bootsize capacity expandsize fragmentation free freeing health guid size unsupported@ altroot readonly=on readonly=off autoexpand=on autoexpand=off autoreplace=on autoreplace=off bootfs= cachefile= comment= dedupditto= delegation= failmode=wait failmode=continue failmode=panic feature@ listsnapshots=on listsnapshots=off version="
 
   # Lookup for command
   local special i
   for (( i=1; i < $cword; i++ ))
   do
-    if [[ ${words[i]} == @(create|destroy|add|remove|labelclear|list|iostat|status|online|offline|clear|reopen|attach|detach|replace|split|import|upgrade|reguid|history|get|set) ]]
+    if [[ ${words[i]} == @(create|destroy|add|remove|labelclear|checkpoint|list|iostat|status|online|offline|clear|reopen|attach|detach|replace|split|initialize|scrub|import|export|upgrade|reguid|history|get|set) ]]
     then
       special=${words[i]}
       break
@@ -55,12 +57,17 @@ _zpool()
           cmd_opts="-f -n"
           ;;
         remove)
-          # remove <pool> <device> ...
-          cmd_opts=""
+          # remove [-np] pool device...
+          # remove -s pool
+          cmd_opts="-n -p -s"
           ;;
         labelclear)
-          # labelclear [-f] <vdev>
+          # labelclear [-f] device
           cmd_opts="-f"
+          ;;
+        checkpoint)
+          # checkpoint [-d, --discard]
+          cmd_opts="-d --discard"
           ;;
         list)
           # list [-Hp] [-o property[,...]] [-T d|u] [pool] ... [interval [count]]
@@ -107,6 +114,10 @@ _zpool()
           #    [-o property=value] <pool> <newpool> [<device> ...]
           cmd_opts="-n -R -o"
           ;;
+        initialize)
+          # initialize [-cs] pool [device...]
+          cmd_opts="-c -s"
+          ;;
         scrub)
           # scrub [-s | -p] <pool> ...
           cmd_opts="-s -p"
@@ -133,7 +144,7 @@ _zpool()
           ;;
         reguid)
           # reguid <pool>
-          cmd_opts="-f"
+          cmd_opts=""
           ;;
         history)
           # history [-il] [<pool>] ...
@@ -158,7 +169,6 @@ _zpool()
           #   m mountpoint] [-R root] <pool> <vdev> ...
           case "${prev}" in
             -o)
-              if [[ "${special}" != "list" ]]; then return; fi;
               # Zpool property
               compopt -o nospace
               COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | gawk '$2 == "YES" {print $1}')" -S '=' -- "${cur}") )
@@ -174,31 +184,37 @@ _zpool()
         add)
           # add [-fn] <pool> <vdev> ...
           case "${prev}" in
-            add|-f*|-n*)
+            add|-f|-n)
               COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
               return
               ;;
             *)
-              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | awk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | gawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
               return
               ;;
           esac
           ;;
         remove)
-          # remove <pool> <device> ...
+          # remove [-np] pool device...
+          # remove -s pool
           case "${prev}" in
-            remove)
+            remove|-n|-p|-s)
               COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
               return
               ;;
             *)
-              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | awk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | gawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
               return
               ;;
           esac
           ;;
         labelclear)
-          # labelclear [-f] <vdev>
+          # labelclear [-f] device
+          # TODO: List devices?
+          ;;
+        checkpoint)
+          # checkpoint [-d, --discard] pool
+          COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
           ;;
         list|iostat|status)
           # list [-Hp] [-o property[,...]] [-T d|u] [pool] ... [interval [count]]
@@ -244,6 +260,7 @@ _zpool()
           ;;
         attach)
           # attach [-f] <pool> <device> <new-device>
+          COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
           ;;
         detach)
           # detach <pool> <device>
@@ -258,6 +275,19 @@ _zpool()
         split)
           # split [-n] [-R altroot] [-o mntopts]
           #   [-o property=value] <pool> <newpool> [<device> ...]
+          case "${prev}" in
+            -o)
+              COMPREPLY=( $(compgen -W "$zpool_properties" -- "${cur}") )
+              return
+              ;;
+            *)
+              COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+              return
+              ;;
+          esac
+          ;;
+        initialize)
+          # initialize [-cs] pool [device...]
           COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
           return
           ;;
@@ -274,6 +304,20 @@ _zpool()
           # import [-o mntopts] [-o property=value] ...
           #   [-d dir | -c cachefile] [-D] [-f] [-m] [-N] [-R root] [-F [-n]]
           #   <pool | id> [newpool]
+          case "${prev}" in
+            -d|-c)
+              _cd
+              return
+              ;;
+            -o)
+              COMPREPLY=( $(compgen -W "$zpool_properties" -- "${cur}") )
+              return
+              ;;
+            *)
+              COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+              return
+              ;;
+          esac
           ;;
         export)
           # export [-f] <pool> ...
@@ -284,9 +328,20 @@ _zpool()
           # upgrade
           # upgrade -v
           # upgrade [-V version] <-a | pool ...>
-          COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
-          return
-          ;;
+          case "${prev}" in
+            -V)
+              COMPREPLY=( $(compgen -W "$(zpool upgrade -v | gawk '/^ [0-9]/ {print $1}')" -- "${cur}") )
+              return
+              ;;
+            -a|-v)
+              return
+              ;;
+            *)
+              COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+              return
+              ;;
+            esac
+            ;;
         reguid)
           # reguid <pool>
           COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
