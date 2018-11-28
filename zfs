@@ -25,11 +25,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-if [[ -w /dev/zfs ]]; then
-    __ZFS_CMD="zfs"
-else
-    __ZFS_CMD="sudo zfs"
-fi
+__ZFS_CMD="zfs"
 
 # Disable bash's built-in hostname completion, as this makes it impossible to
 # provide completions containing an @-sign, which is necessary for completing
