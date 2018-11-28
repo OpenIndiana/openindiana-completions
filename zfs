@@ -25,6 +25,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+# Originally retrieved from (upstream): https://github.com/Aneurin/zfs-bash
+
 __ZFS_CMD="zfs"
 
 # Disable bash's built-in hostname completion, as this makes it impossible to
