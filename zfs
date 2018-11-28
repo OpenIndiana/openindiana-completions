@@ -1,3 +1,7 @@
+# OpenIndiana zfs(1M) completion                            -*- shell-script -*-
+# ------------------------------------------------------------------------------
+# Copyright (c) 2018, Michal Nowak <mnowak@startmail.com>
+
 # Copyright (c) 2010-2016, Aneurin Price <aneurin.price@gmail.com>
 
 # Permission is hereby granted, free of charge, to any person
@@ -23,10 +27,8 @@
 
 if [[ -w /dev/zfs ]]; then
     __ZFS_CMD="zfs"
-    __ZPOOL_CMD="zpool"
 else
     __ZFS_CMD="sudo zfs"
-    __ZPOOL_CMD="sudo zpool"
 fi
 
 # Disable bash's built-in hostname completion, as this makes it impossible to
@@ -405,77 +407,7 @@ __zfs_complete()
     return 0
 }
 
-__zpool_get_commands()
-{
-    $__ZPOOL_CMD 2>&1 | awk '/^\t[a-z]/ {print $1}' | uniq
-}
-
-__zpool_get_properties()
-{
-    $__ZPOOL_CMD get 2>&1 | awk '$2 == "YES" || $2 == "NO" {print $1}'; echo all
-}
-
-__zpool_get_editable_properties()
-{
-    $__ZPOOL_CMD get 2>&1 | awk '$2 == "YES" {print $1"="}'
-}
-
-__zpool_list_pools()
-{
-    $__ZPOOL_CMD list -H -o name
-}
-
-__zpool_complete()
-{
-    local cur prev cmd cmds
-    COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    cmd="${COMP_WORDS[1]}"
-
-    if [[ ${prev##*/} == zpool ]]
-    then
-        cmds=$(__zpool_get_commands)
-        COMPREPLY=($(compgen -W "$cmds" -- "$cur"))
-        return 0
-    fi
-
-    case "${cmd}" in
-        get)
-            __zfs_complete_ordered_arguments "$(__zpool_get_properties)" "$(__zpool_list_pools)" $cur
-            return 0
-            ;;
-        import)
-            if [[ $prev == -d ]]
-            then
-                _filedir -d
-            else
-                COMPREPLY=($(compgen -W "$(__zpool_list_pools) -d" -- "$cur"))
-            fi
-            return 0
-            ;;
-        set)
-            __zfs_complete_ordered_arguments "$(__zpool_get_editable_properties)" "$(__zpool_list_pools)" $cur
-            __zfs_complete_nospace
-            return 0
-            ;;
-        add|attach|clear|create|detach|offline|online|remove|replace)
-            local pools="$(__zpool_list_pools)"
-            if __zfs_argument_chosen $pools
-            then
-                _filedir
-            else
-                COMPREPLY=($(compgen -W "$pools" -- "$cur"))
-            fi
-            return 0
-            ;;
-        *)
-            COMPREPLY=($(compgen -W "$(__zpool_list_pools)" -- "$cur"))
-            return 0
-            ;;
-    esac
-
-}
-
 complete -F __zfs_complete zfs
-complete -F __zpool_complete zpool
+
+# ex: filetype=sh
+# vim: tabstop=4 shiftwidth=4 expandtab smartindent
