@@ -198,7 +198,7 @@ __zfs_complete_multiple_options()
 
     COMPREPLY=($(compgen -W "$options" -- "${cur##*,}"))
     local existing_opts=$(expr "$cur" : '\(.*,\)')
-    if [[ $existing_opts ]] 
+    if [[ $existing_opts ]]
     then
         COMPREPLY=( "${COMPREPLY[@]/#/${existing_opts}}" )
     fi
