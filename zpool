@@ -1,7 +1,7 @@
 # OpenIndiana zpool(1M) completion                          -*- shell-script -*-
 # ------------------------------------------------------------------------------
-# Aurelien Larcher <aurelien@openindiana.org>
-# Michal Nowak <mnowak@startmail.com>
+# Copyright (c) 2017, Aurelien Larcher <aurelien@openindiana.org>
+# Copyright (c) 2018, Michal Nowak <mnowak@startmail.com>
 
 # Bash-completion does not handle custom wordbreaks so comma-separated values
 # cannot be implemented without this.
@@ -171,7 +171,7 @@ _zpool()
             -o)
               # Zpool property
               compopt -o nospace
-              COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | gawk '$2 == "YES" {print $1}')" -S '=' -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | nawk '$2 == "YES" {print $1}')" -S '=' -- "${cur}") )
               return
               ;;
           esac
@@ -189,7 +189,7 @@ _zpool()
               return
               ;;
             *)
-              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | gawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
               return
               ;;
           esac
@@ -203,7 +203,7 @@ _zpool()
               return
               ;;
             *)
-              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | gawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
               return
               ;;
           esac
@@ -225,7 +225,7 @@ _zpool()
               if [[ "${special}" != "list" ]]; then return; fi;
               # Zpool property
               compopt -o nospace
-              COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | gawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | nawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${cur}") )
               return
               ;;
             -T)
@@ -330,7 +330,7 @@ _zpool()
           # upgrade [-V version] <-a | pool ...>
           case "${prev}" in
             -V)
-              COMPREPLY=( $(compgen -W "$(zpool upgrade -v | gawk '/^ [0-9]/ {print $1}')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool upgrade -v | nawk '/^ [0-9]/ {print $1}')" -- "${cur}") )
               return
               ;;
             -a|-v)
@@ -375,7 +375,7 @@ _zpool()
                   # Zpool property
                   local realcur=${cur##*,}
                   compopt -o nospace
-                  COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | gawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${realcur}") )
+                  COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | nawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${realcur}") )
                   return
               fi
               ;;
@@ -390,7 +390,7 @@ _zpool()
               fi
               # Zpool property
               compopt -o nospace
-              COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | gawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | nawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${cur}") )
               return
               ;;
             *)
@@ -399,7 +399,7 @@ _zpool()
                   # Zpool property
                   local realcur=${cur##*,}
                   compopt -o nospace
-                  COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | gawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${realcur}") )
+                  COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | nawk '$2 == "NO" || $2 == "YES" {print $1}')" -- "${realcur}") )
                   return
               fi
               COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
