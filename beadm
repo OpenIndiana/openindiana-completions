@@ -132,7 +132,7 @@ _beadm()
                           # entered BE name, so find snapshot for the particuler BE
                           if [[ "${prev}" != "rollback" ]]
                           then
-                            be_and_snapshots=( $(for K in echo "${!be_and_snapshots[@]}"; do echo ${be_and_snapshots[$K]} | grep "^${prev}@" | gsed -e 's,.*@,,'; done) )
+                            be_and_snapshots=( $(for K in echo "${!be_and_snapshots[@]}"; do echo ${be_and_snapshots[$K]} | grep "^${prev}@" | sed -e 's,.*@,,'; done) )
                           fi
                           ;;
                       esac
@@ -182,7 +182,7 @@ _beadm()
               local pprev="${COMP_WORDS[COMP_CWORD-2]}"
               local realcur="${cur##*=}"
               local zfsprop="${pprev%%@*}"; zfsprop="${zfsprop##*,}"
-              local zfsvals=( $(zfs get 2>&1 | nawk '$1 == "'${zfsprop}'" && $2 == "YES" { $1=""; $2=""; $3=""; print }' | gsed -e 's,|,,g') )
+              local zfsvals=( $(zfs get 2>&1 | nawk '$1 == "'${zfsprop}'" && $2 == "YES" { $1=""; $2=""; $3=""; print }' | sed -e 's,|,,g') )
               compopt -o nospace
               compopt -o nosort
               COMPREPLY=( $(compgen -W "${zfsvals[*]}" -- "${realcur}") )
@@ -200,7 +200,7 @@ _beadm()
                   # ZFS property values
                   local realcur=${cur##*=}
                   local zfsprop=${prev%%@*}; zfsprop=${zfsprop##*,}
-                  local zfsvals=( $(zfs get 2>&1 | nawk '$1 == "'${zfsprop}'" && $2 == "YES" { $1=""; $2=""; $3=""; print }' | gsed -e 's,|,,g') )
+                  local zfsvals=( $(zfs get 2>&1 | nawk '$1 == "'${zfsprop}'" && $2 == "YES" { $1=""; $2=""; $3=""; print }' | sed -e 's,|,,g') )
                   compopt -o nospace
                   compopt -o nosort
                   COMPREPLY=( $(compgen -W "${zfsvals[*]}" -- "${realcur}") )
