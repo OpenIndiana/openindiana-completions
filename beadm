@@ -98,7 +98,7 @@ _beadm()
               case "${cur}" in
                 *@)
                   compopt -o nospace
-                  COMPREPLY=( $(compgen -W "$(beadm list -H -s | gawk -F ';' '{print $2}')" -- "${cur}") )
+                  COMPREPLY=( $(compgen -W "$(beadm list -H -s | nawk -F ';' '{print $2}')" -- "${cur}") )
                   return
                   ;;
                 *)
@@ -106,23 +106,23 @@ _beadm()
                   local be_and_snapshots=()
                   case "${special}" in
                     activate)
-                      be_and_snapshots=( $(beadm list -H | gawk -F ';' '$3 !~ "N"  {print $1}') )
+                      be_and_snapshots=( $(beadm list -H | nawk -F ';' '$3 !~ "N"  {print $1}') )
                       ;;
                     destroy)
-                      be_and_snapshots=( $(beadm list -H -a | gawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
+                      be_and_snapshots=( $(beadm list -H -a | nawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
                       ;;
                     mount)
-                      be_and_snapshots=( $(beadm list -H | gawk -F ';' '$3 !~ "N" && $4 == "" {print $1}') )
+                      be_and_snapshots=( $(beadm list -H | nawk -F ';' '$3 !~ "N" && $4 == "" {print $1}') )
                       ;;
                     umount|unmount)
-                      be_and_snapshots=( $(beadm list -H | gawk -F ';' '$3 !~ "N" && $4 != "" {print $1}') )
+                      be_and_snapshots=( $(beadm list -H | nawk -F ';' '$3 !~ "N" && $4 != "" {print $1}') )
                       ;;
                     rename)
-                      be_and_snapshots=( $(beadm list -H | gawk -F ';' '$3 !~ "R"  {print $1}') )
+                      be_and_snapshots=( $(beadm list -H | nawk -F ';' '$3 !~ "R"  {print $1}') )
                       ;;
                     rollback)
                       # list BEs and snapshots
-                      be_and_snapshots=( $(beadm list -H -a | gawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
+                      be_and_snapshots=( $(beadm list -H -a | nawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
                       case "${line}" in
                         *@*)
                           # entered BE@snapshot, hence we are done here
@@ -160,11 +160,11 @@ _beadm()
               case "${cur}" in
                 *@)
                   compopt -o nospace
-                  COMPREPLY=( $(compgen -W "$(beadm list -H -s | gawk -F ';' '{print $2}')" -- "${cur}") )
+                  COMPREPLY=( $(compgen -W "$(beadm list -H -s | nawk -F ';' '{print $2}')" -- "${cur}") )
                   return
                   ;;
                 *)
-                  be_and_snapshots=( $(beadm list -H -a | gawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
+                  be_and_snapshots=( $(beadm list -H -a | nawk -F ';' '$2 ~ "@" {print $2}; $3 !~ "N" {print $1}' | sort | uniq) )
                   compopt -o nospace
                   COMPREPLY=( $(compgen -W "${be_and_snapshots[*]}" -- "${cur}") )
                   return
@@ -174,7 +174,7 @@ _beadm()
             -o|,)
               # ZFS property
               compopt -o nospace
-              COMPREPLY=( $(compgen -W "$(zfs get 2>&1 | gawk '$2 == "YES" {print $1}')" -S '=' -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(zfs get 2>&1 | nawk '$2 == "YES" {print $1}')" -S '=' -- "${cur}") )
               return
               ;;
             =)
@@ -182,7 +182,7 @@ _beadm()
               local pprev="${COMP_WORDS[COMP_CWORD-2]}"
               local realcur="${cur##*=}"
               local zfsprop="${pprev%%@*}"; zfsprop="${zfsprop##*,}"
-              local zfsvals=( $(zfs get 2>&1 | gawk "\$1 == \"${zfsprop}\" && \$2 == \"YES\" { \$1=\"\"; \$2=\"\"; \$3=\"\"; print }" | gsed -e 's,|,,g') )
+              local zfsvals=( $(zfs get 2>&1 | nawk '$1 == "'${zfsprop}'" && $2 == "YES" { $1=""; $2=""; $3=""; print }' | gsed -e 's,|,,g') )
               compopt -o nospace
               compopt -o nosort
               COMPREPLY=( $(compgen -W "${zfsvals[*]}" -- "${realcur}") )
@@ -193,14 +193,14 @@ _beadm()
                   # ZFS property after comma
                   local realcur=${cur##*,}
                   compopt -o nospace
-                  COMPREPLY=( $(compgen -W "$(zfs get 2>&1 | gawk '$2 == "YES" {print $1}')" -S '=' -- "${realcur}") )
+                  COMPREPLY=( $(compgen -W "$(zfs get 2>&1 | nawk '$2 == "YES" {print $1}')" -S '=' -- "${realcur}") )
                   return
                   ;;
                 =)
                   # ZFS property values
                   local realcur=${cur##*=}
                   local zfsprop=${prev%%@*}; zfsprop=${zfsprop##*,}
-                  local zfsvals=( $(zfs get 2>&1 | gawk "\$1 == \"${zfsprop}\" && \$2 == \"YES\" { \$1=\"\"; \$2=\"\"; \$3=\"\"; print }" | gsed -e 's,|,,g') )
+                  local zfsvals=( $(zfs get 2>&1 | nawk '$1 == "'${zfsprop}'" && $2 == "YES" { $1=""; $2=""; $3=""; print }' | gsed -e 's,|,,g') )
                   compopt -o nospace
                   compopt -o nosort
                   COMPREPLY=( $(compgen -W "${zfsvals[*]}" -- "${realcur}") )
@@ -219,7 +219,7 @@ _beadm()
               return
               ;;
             *)
-              local be_list=( $(beadm list -H | gawk -F ';' '{print $1}') )
+              local be_list=( $(beadm list -H | nawk -F ';' '{print $1}') )
               compopt -o nospace
               COMPREPLY=( $(compgen -W "${be_list[*]}" -- "${cur}") )
               ;;
