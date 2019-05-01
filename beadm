@@ -1,11 +1,15 @@
 # OpenIndiana beadm(1M) completion                          -*- shell-script -*-
 # ------------------------------------------------------------------------------
 # Copyright (c) 2017, Aurelien Larcher <aurelien@openindiana.org>
-# Copyright (c) 2018, Michal Nowak <mnowak@startmail.com>
+# Copyright (c) 2019, Michal Nowak <mnowak@startmail.com>
 
 # Bash-completion does not handle custom wordbreaks so comma-separated values
 # cannot be implemented without this.
 COMP_WORDBREAKS="${COMP_WORDBREAKS//,},"
+
+# BE name may contain ':', e.g. to delimit date. It needs to be removed from
+# set of word separators, otherwise we are stuck half-way in BE name completion.
+COMP_WORDBREAKS="${COMP_WORDBREAKS//:/}"
 
 _beadm()
 {
