@@ -68,6 +68,10 @@ _pkg5()
                        --no-backup-be --require-backup-be --backup-be-name
                        --deny-new-be --require-new-be --be-name"
     case "${special}" in
+      apply-hot-fix)
+        cmd_opts="-n -v -q ${cmd_opts_be} -r"
+        if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
+        ;;
       change-facet|change-variant|exact-install|install)
         cmd_opts="-n -v -q -C -g
                   --accept --licenses --no-index --no-refresh
@@ -224,6 +228,12 @@ _pkg5()
   if [[ "${cur}" != -* ]]
   then
     case ${special} in
+    apply-hot-fix)
+      local cur=${COMP_WORDS[COMP_CWORD]}
+      local IFS=$'\n'
+      compopt -o nospace
+      COMPREPLY=( $(compgen -o plusdirs -f -X '!*.p5p' -- $cur) )
+      ;;
     contents|list|freeze|unfreeze|update)
       _get_installed_packages
       ;;
