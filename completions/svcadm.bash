@@ -1,8 +1,13 @@
-# OpenIndiana svcadm(1M) & svcs(1) completions              -*- shell-script -*-
+# SMF completions: svcadm(8), svcs(1), svcprop(1) & svccfg(8)
+#                                                           -*- shell-script -*-
 # ------------------------------------------------------------------------------
 # Copyright 2006 Yann Rouillard <yann@opencsw.org>
 # Portions copyright 2013, Nexenta Systems, Inc.
 # Copyright (c) 2018, Michal Nowak <mnowak@startmail.com>
+# Copyright 2026 OmniOS Community Edition (OmniOSce) Association.
+#
+# svcs, svcprop and svccfg are provided from this file via symbolic links;
+# loading any of them registers the completions for all four commands.
 
 # svcadm accepts any complete FMRI or abbreviated FMRI
 #   - a complete FMRI is svc:/foo/bar/bar/baz,
@@ -25,7 +30,7 @@
 _gen_zoneadm_list()
 {
     if [[ ${prev} =~ "-z" ]]; then
-        local zones="$(zoneadm list -c | grep -v '^global$')"
+        local zones="$(zoneadm list -n)"
         COMPREPLY=( $(compgen -W "${zones}" -- ${cur}) )
     fi
 }
@@ -203,8 +208,68 @@ _svcs()
     _gen_zoneadm_list
 }
 
+_svcprop()
+{
+    local cur prev zones
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    case "$prev" in
+        -p|-s)
+            # property/property-group and snapshot names
+            return
+            ;;
+    esac
+
+    if [[ $cur == -* ]]; then
+        # zone options are usable only in global zone
+        if [[ "$(zonename)" == "global" ]]; then
+            zones="-z"
+        fi
+        COMPREPLY=( $(compgen -W "-C -c -f -p -q -s -t -v -w $zones" -- "${cur}") )
+    else
+        _smf_complete_fmri "${cur}" "svc:"
+    fi
+
+    _gen_zoneadm_list
+}
+
+_svccfg()
+{
+    local cur prev zones
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    case "$prev" in
+        -s)
+            _smf_complete_fmri "${cur}" "svc:"
+            return
+            ;;
+        -f)
+            # command file; fall back to default file completion
+            return
+            ;;
+    esac
+
+    if [[ $cur == -* ]]; then
+        # zone options are usable only in global zone
+        if [[ "$(zonename)" == "global" ]]; then
+            zones="-z"
+        fi
+        COMPREPLY=( $(compgen -W "-e -f -s -v $zones" -- "${cur}") )
+    else
+        # The sub-command list is parsed from the svccfg help output
+        COMPREPLY=( $(compgen -W \
+            "$(svccfg help 2>&1 | sed -n 's/.*commands: *//p')" -- "${cur}") )
+    fi
+
+    _gen_zoneadm_list
+}
+
 complete -F _svcadm svcadm
 complete -F _svcs svcs
+complete -F _svcprop svcprop
+complete -F _svccfg -o default svccfg
 
 # ex: filetype=sh
 # vim: tabstop=2 shiftwidth=2 expandtab smartindent

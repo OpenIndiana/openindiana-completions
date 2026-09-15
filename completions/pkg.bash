@@ -31,21 +31,21 @@ _pkg5()
   _init_completion || return
 
   local cmds="list search info contents
-              update install uninstall history exact-install apply-hot-fix
-              verify fix revert
+              update install uninstall autoremove history exact-install apply-hot-fix
+              verify fix revert flag
               publisher set-publisher unset-publisher
               mediator set-mediator unset-mediator facet change-facet variant change-variant
               avoid unavoid freeze unfreeze
               refresh rebuild-index purge-history
               property set-property add-property-value unset-property remove-property-value
-              image-create dehydrate rehydrate help update-format version"
+              image-create dehydrate rehydrate clean help update-format version"
   local cmd_opts=""
 
   # Lookup for command
   local special i
   for (( i=1; i < $cword; i++ ))
   do
-    if [[ ${words[i]} == @(list|search|info|contents|update|update-format|version|@(|un|exact-)install|history|verify|fix|revert|apply-hot-fix|@(|set-|unset-)publisher|@(|set-|unset-)mediator|@(|change-)facet|@(|change-)variant|@(|un)avoid|@(|un)freeze|refresh|rebuild-index|purge-history|@(|set-|unset-)property|@(add-|remove-)property-value|image-create|@(de|re)hydrate|help) ]]
+    if [[ ${words[i]} == @(list|search|info|contents|update|update-format|version|@(|un|exact-)install|autoremove|history|verify|fix|revert|flag|apply-hot-fix|@(|set-|unset-)publisher|@(|set-|unset-)mediator|@(|change-)facet|@(|change-)variant|@(|un)avoid|@(|un)freeze|refresh|rebuild-index|purge-history|@(|set-|unset-)property|@(add-|remove-)property-value|image-create|@(de|re)hydrate|clean|help) ]]
     then
       special=${words[i]}
       break
@@ -188,6 +188,18 @@ _pkg5()
       unfreeze)
         cmd_opts="-n"
         ;;
+      autoremove)
+        cmd_opts="-n -v -q -C --ignore-missing --no-index
+                  ${cmd_opts_be} -r
+                  --sync-actuators --sync-actuators-timeout"
+        if [[ "${prev}" == "-r" ]]; then cmd_opts="-z -Z"; fi
+        ;;
+      clean)
+        cmd_opts="-v"
+        ;;
+      flag)
+        cmd_opts="-m -M"
+        ;;
       uninstall)
         cmd_opts="-n -v -q -C -g --ignore-missing
                   --accept --licenses --no-index
@@ -234,7 +246,7 @@ _pkg5()
       compopt -o nospace
       COMPREPLY=( $(compgen -o plusdirs -f -X '!*.p5p' -- $cur) )
       ;;
-    contents|list|freeze|unfreeze|update)
+    contents|list|freeze|unfreeze|update|uninstall|autoremove|flag)
       _get_installed_packages
       ;;
     info)

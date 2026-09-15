@@ -10,12 +10,8 @@ _dladm()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     if [[ ${prev} == 'dladm' ]]; then
-      local cmds="$(dladm 2>&1 | awk '/^ / { print $1 }')"
+      local cmds="$(dladm help 2>&1 | awk '/^ / { print $1 }')"
       COMPREPLY=( $(compgen -W "${cmds}" -- ${cur}) )
-    elif [[ ${prev} =~ "-z" ]]; then
-      # Some illumos OS distributions have zone-aware dladm. Treat -z as a zone name option
-      local zones="$(zoneadm list -c | grep -v '^global$')"
-      COMPREPLY=( $(compgen -W "${zones}" -- ${cur}) )
     elif [[ ${prev} =~ 'delete-vnic' ]]; then
       # Redirect stderr to /dev/null not to polute console, e.g.:
       #   dladm: could not open /dev/dld: object not found

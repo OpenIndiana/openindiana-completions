@@ -1,0 +1,1 @@
+svcadm.bash
