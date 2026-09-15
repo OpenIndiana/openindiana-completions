@@ -7,6 +7,41 @@
 # cannot be implemented without this.
 COMP_WORDBREAKS="${COMP_WORDBREAKS//,},"
 
+_find_pool_name()
+{
+  local cword=0
+  for i in ${COMP_LINE};
+  do
+    if [[ "$i" == -* ]]; then
+       continue;
+    fi
+    if [[ $cword -lt 2 ]]; then 
+      cword=$(($cword+1))
+      continue;
+    fi
+    echo "$i";
+    break;
+  done
+}
+
+_was_disk_named()
+{
+  local cword=0
+
+  for i in ${COMP_LINE};
+  do
+    if [[ "$i" == -* ]]; then 
+      continue;
+    fi
+    cword=$(($cword+1))
+  done
+  if [ $cword -gt 3 ]; then
+    return 0;
+  else 
+    return 1;
+  fi
+}
+
 _zpool()
 {
   local cur prev words cword
@@ -174,6 +209,10 @@ _zpool()
               COMPREPLY=( $(compgen -W "$(zpool get 2>&1 | nawk '$2 == "YES" {print $1}')" -S '=' -- "${cur}") )
               return
               ;;
+             *)
+              COMPREPLY=( $(compgen -W "$(ls -1 /dev/dsk)" -- "${cur}") )
+              return
+              ;;
           esac
           ;;
         destroy)
@@ -189,7 +228,7 @@ _zpool()
               return
               ;;
             *)
-              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              COMPREPLY=( $(compgen -W "$(ls -1 /dev/dsk)" -- "${cur}") )
               return
               ;;
           esac
@@ -203,7 +242,8 @@ _zpool()
               return
               ;;
             *)
-              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${prev} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              poolname=$(_find_pool_name)
+              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${poolname} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
               return
               ;;
           esac
@@ -260,16 +300,52 @@ _zpool()
           ;;
         attach)
           # attach [-f] <pool> <device> <new-device>
-          COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+          case "${prev}" in
+            attach|-f)
+              COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+              ;;
+            *)
+              poolname=$(_find_pool_name)
+              _was_disk_named
+              if [ $? -eq 0 ]; then
+                COMPREPLY=( $(compgen -W "$(ls -1 /dev/dsk)" -- "${cur}") )
+              else
+                COMPREPLY=( $(compgen -W "$(zpool list -Hv ${poolname} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              fi
+
+              ;;
+          esac
+          return
           ;;
         detach)
           # detach <pool> <device>
-          COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+          case "${prev}" in
+            detach)
+              COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+              ;;
+            *)
+              poolname=$(_find_pool_name)
+              COMPREPLY=( $(compgen -W "$(zpool list -Hv ${poolname} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              ;;
+          esac
           return
           ;;
         replace)
           # replace [-f] <pool> <device> [new-device]
-          COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+          case "${prev}" in
+            replace|-f)
+              COMPREPLY=( $(compgen -W "$(zpool list -H -o name)" -- "${cur}") )
+              ;;
+            *)
+              poolname=$(_find_pool_name)
+              _was_disk_named
+              if [ $? -eq 0 ]; then
+                COMPREPLY=( $(compgen -W "$(ls -1 /dev/dsk)" -- "${cur}") )
+              else
+                COMPREPLY=( $(compgen -W "$(zpool list -Hv ${poolname} | nawk 'NR>1 && $1 !~ "raid|mirror" { print $1 }')" -- "${cur}") )
+              fi
+              ;;
+          esac
           return
           ;;
         split)
